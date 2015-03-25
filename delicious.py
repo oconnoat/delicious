@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import sys
+
 import requests
 import time
 import re
@@ -11,39 +13,46 @@ from collections import Counter
 import csv
 import json
 
-logging.basicConfig(filename='delicious.log',level=logging.DEBUG)
+if __name__=="__main__":
 
-alltags = Counter()
-urlwithtags = {}
+    logging.basicConfig(filename='delicious.log',level=logging.DEBUG)
 
-with open('delicious.html') as f:
-    rh = re.compile(r'HREF="(.*?)"')
-    rx = re.compile(r'TAGS="(.*)"')
+    alltags = Counter()
+    urlwithtags = {}
+
+    deliciousfile = 'delicious.html'
+
+    if len(sys.argv) > 0:
+        deliciousfile = sys.argv[0]
+
+    with open(deliciousfile, 'r') as f:
+        rh = re.compile(r'HREF="(.*?)"')
+        rx = re.compile(r'TAGS="(.*)"')
 
 
-    for line in f:
-        try:
-            urlregex = rh.search(line)
-            url = urlregex.group(1)
-            r = requests.get(url, timeout=1)
+        for line in f:
+            try:
+                urlregex = rh.search(line)
+                url = urlregex.group(1)
+                r = requests.get(url, timeout=1)
 
-            if r.status_code == 200:
-                match = rx.search(line)
-                taggrp = match.group(1)
-                tags = taggrp.split(',')
-                alltags.update(tags)
-                urlwithtags[url] = tags
-                logging.debug('url %s', url)
-                logging.debug('tags %s', tags)
+                if r.status_code == 200:
+                    match = rx.search(line)
+                    taggrp = match.group(1)
+                    tags = taggrp.split(',')
+                    alltags.update(tags)
+                    urlwithtags[url] = tags
+                    logging.debug('url %s', url)
+                    logging.debug('tags %s', tags)
 
-        except Exception as e:
-            logging.error("Exception: %s", e)
+            except Exception as e:
+                logging.error("Exception: %s", e)
 
-with open('tags.csv','w') as f:
-    csvwriter = csv.writer(f)
-    csvwriter.writerow( ['tag','count'])
-    for tag, count in alltags.iteritems():
-        csvwriter.writerow([tag, count])
+    with open('tags.csv','w') as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow( ['tag','count'])
+        for tag, count in alltags.iteritems():
+            csvwriter.writerow([tag, count])
 
-with open('urls.json','w') as f:
-    json.dump(urlwithtags, f)
+    with open('urls.json','w') as f:
+        json.dump(urlwithtags, f)
