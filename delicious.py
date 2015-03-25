@@ -6,25 +6,27 @@ import re
 import logging
 
 from collections import defaultdict
-from collections import Set
+from collections import Counter
 
+import csv
+import json
 
-logging.basicConfig(filename='example.log',level=logging.DEBUG)
+logging.basicConfig(filename='delicious.log',level=logging.DEBUG)
 
-alltags = set() 
+alltags = Counter()
 urlwithtags = {}
 
-with open('delicious2.html') as f:
+with open('delicious.html') as f:
     rh = re.compile(r'HREF="(.*?)"')
     rx = re.compile(r'TAGS="(.*)"')
-    
+
 
     for line in f:
         try:
             urlregex = rh.search(line)
             url = urlregex.group(1)
-            r = requests.get(url)
-            print r.status_code
+            r = requests.get(url, timeout=1)
+
             if r.status_code == 200:
                 match = rx.search(line)
                 taggrp = match.group(1)
@@ -37,8 +39,11 @@ with open('delicious2.html') as f:
         except Exception as e:
             logging.error("Exception: %s", e)
 
-with open('tags.txt','w') as f:
-    f.write(str(alltags))
+with open('tags.csv','w') as f:
+    csvwriter = csv.writer(f)
+    csvwriter.writerow( ['tag','count'])
+    for tag, count in alltags.iteritems():
+        csvwriter.writerow([tag, count])
 
-with open('urls.txt','w') as f:
-    f.write(str(urlwithtags))
+with open('urls.json','w') as f:
+    json.dump(urlwithtags, f)
